@@ -21,3 +21,82 @@ This is a Node.js webhook endpoint for YaYa Wallet to receive and process transa
 
 ### Clone Repository
 
+git clone <your-repo-url>
+cd yayawallet-webhook
+
+### Install Dependencies
+
+npm install
+
+### Configure Environment
+
+Create a .env file:
+
+PORT=3000
+WEBHOOK_SECRET=your-secret-key
+MONGODB_URI=mongodb://localhost:27017
+
+Replace your-secret-key with the YaYa Wallet webhook secret and update MONGODB_URI if needed.
+
+### Start MongoDB
+
+Ensure MongoDB is running locally or use a cloud instance.
+
+### Run the Server
+
+node index.js
+
+The server runs at http://localhost:3000.
+
+## Testing
+
+### Local Testing
+
+Use Postman or curl to send a POST request to http://localhost:3000/webhook.
+
+Example payload:
+
+{
+  "id": "1dd2854e-3a79-4548-ae36-97e4a18ebf81",
+  "amount": 100,
+  "currency": "ETB",
+  "created_at_time": 1673381836,
+  "timestamp": 1701272333,
+  "cause": "Testing",
+  "full_name": "Abebe Kebede",
+  "account_name": "abebekebede1",
+  "invoice_url": "https://yayawallet.com/en/invoice/xxxx"
+}
+
+Generate the signature:
+
+const crypto = require('crypto');
+const payload = JSON.stringify({ ... }); 
+const secret = 'your-secret-key';
+const signature = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+console.log(signature);
+
+Example curl:
+
+curl -X POST http://localhost:3000/webhook \
+-H "Content-Type: application/json" \
+-H "x-webhook-signature: <signature>" \
+-d '{"id":"1dd2854e-3a79-4548-ae36-97e4a18ebf81","amount":100,"currency":"ETB","created_at_time":1673381836,"timestamp":1701272333,"cause":"Testing","full_name":"Abebe Kebede","account_name":"abebekebede1","invoice_url":"https://yayawallet.com/en/invoice/xxxx"}'
+
+### Replay Testing
+
+Send the same payload twice. First response: { "message": "Webhook received successfully" } (200). Second: { "message": "Event already processed" } (200).
+
+### Signature Testing
+
+Invalid signature: Returns { "error": "Invalid signature" } (401).
+Missing signature: Returns { "error": "Missing signature header" } (401).
+
+### Invalid Payload
+
+Missing required fields: Returns { "error": "Invalid payload" } (400).
+
+### Health Check
+
+GET http://localhost:3000/health returns { "status": "OK" } (200).
+
